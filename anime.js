@@ -3,7 +3,7 @@
 'use strict';
 const AKEY='reelvault-anime-v1', MODEKEY='reelvault-section-v1';
 const starters=[
-{id:'anime-cyberpunk',title:'Cyberpunk: Edgerunners',year:2022,type:'series',seasons:1,description:'A street kid tries to survive Night City as an edgerunner.'},
+{id:'anime-cyberpunk',title:'Cyberpunk: Edgerunners',year:2022,type:'series',seasons:2,description:'A street kid tries to survive Night City as an edgerunner.'},
 {id:'anime-snowball',title:'Snowball Earth',year:2026,type:'series',seasons:1,description:'A young pilot returns to an Earth covered in ice.'},
 {id:'anime-sakamoto',title:'Sakamoto Days',year:2025,type:'series',seasons:1,description:'A retired legendary hitman gets pulled back into danger.'},
 {id:'anime-chainsaw',title:'Chainsaw Man',year:2022,type:'series',seasons:1,description:'Denji becomes a devil hunter after merging with Pochita.'},
