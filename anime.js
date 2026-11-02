@@ -14,6 +14,26 @@ try{const v=JSON.parse(localStorage.getItem(AKEY));anime=Array.isArray(v)?v:star
 for(const x of starters){if(!anime.some(y=>y.id===x.id||y.title.toLowerCase()===x.title.toLowerCase()))anime.push({...x,status:'watchlist',watched:[],seasonsRated:{}})}
 for(const a of anime){const known=starters.find(s=>s.id===a.id);if(known){a.seasons=known.seasons;a.type=known.type}a.watched=Array.isArray(a.watched)?a.watched:[];a.seasonsRated=a.seasonsRated&&typeof a.seasonsRated==='object'?a.seasonsRated:{}}
 const store=()=>localStorage.setItem(AKEY,JSON.stringify(anime));store();
+async function updateReleasedSeasons(){
+ const checked=Number(localStorage.getItem('reelvault-anime-season-check')||0);
+ if(Date.now()-checked<86400000)return;
+ localStorage.setItem('reelvault-anime-season-check',String(Date.now()));
+ const ids=['anime-cyberpunk','anime-snowball','anime-sakamoto','anime-chainsaw'];
+ for(const id of ids){
+  const a=anime.find(x=>x.id===id);if(!a)continue;
+  try{
+   const res=await fetch('https://api.tvmaze.com/singlesearch/shows?q='+encodeURIComponent(a.title)+'&embed=episodes');
+   if(!res.ok)continue;const result=await res.json();
+   const norm=s=>s.toLowerCase().replace(/[^a-z0-9]/g,'');
+   if(norm(result.name)!==norm(a.title))continue;
+   const now=new Date().toISOString().slice(0,10);
+   const episodes=result._embedded?.episodes||[];
+   const n=Math.max(0,...episodes.filter(ep=>ep.type!=='special'&&ep.airdate&&ep.airdate<=now).map(ep=>+ep.season||0));
+   if(n>a.seasons){a.seasons=n;store();if(section==='anime')render();}
+  }catch(e){}
+ }
+}
+
 const esc=s=>escapeHtml(s);
 const fiveQs=[
 ['How much did you enjoy this season?',['Not at all','Not much','It was okay','Really enjoyed it','Loved it']],
@@ -46,5 +66,5 @@ root.querySelector('[data-overall-rate]').onclick=()=>ratingModal(a,null);root.q
 if(removeMode)root.querySelector('[data-anime-delete]').onclick=()=>{if(!removeMode)return;if(confirm('Remove '+a.title+'?')){anime=anime.filter(x=>x.id!==id);store();root.innerHTML='';render()}}}
 function ratingModal(a,n){seasonFocus=n;let q=n===null?questions:fiveQs;let values=n===null?a.overallAnswers:a.seasonsRated[n];let curr=Array.from({length:q.length},(_,i)=>values?.[i]??null);function draw(scroll){const root=document.getElementById('modalroot');root.innerHTML='<div class="modal"><div class="sheet" id="anime-rating-sheet"><div class="split"><h2>'+esc(a.title)+(n===null?' — overall':' — Season '+n)+'</h2><button class="close" id="anime-rating-back">×</button></div>'+q.map((item,i)=>'<div class="question"><h3>'+(i+1)+'. '+esc(item[0])+'</h3><div class="choices">'+item[1].map((choice,j)=>'<button class="choice '+(curr[i]===j+1?'selected':'')+'" data-anime-q="'+i+'" data-anime-val="'+(j+1)+'">'+esc(choice)+'</button>').join('')+'</div></div>').join('')+'<div class="ratingtotal">'+curr.filter(x=>x!==null).length+'/'+q.length+' answered</div><div class="topactions"><button class="btn" id="anime-rating-save" '+(curr.some(x=>x===null)?'disabled':'')+'>Save rating</button></div></div></div>';const sheet=root.querySelector('.sheet');sheet.scrollTop=scroll||0;root.querySelectorAll('[data-anime-q]').forEach(button=>button.onclick=()=>{const y=sheet.scrollTop;curr[+button.dataset.animeQ]=+button.dataset.animeVal;draw(y)});root.querySelector('#anime-rating-back').onclick=()=>details(a.id);root.querySelector('#anime-rating-save').onclick=()=>{if(curr.some(x=>x===null))return;if(n===null)a.overallAnswers=curr.slice();else a.seasonsRated[n]=curr.slice();if(n===null)a.status='rated';store();render();details(a.id)}}draw(0)}
 document.getElementById('content').addEventListener('click',e=>{const mode=e.target.closest('[data-section]');if(mode){section=mode.dataset.section;localStorage.setItem(MODEKEY,section);tab='watchlist';document.getElementById('modalroot').innerHTML='';render();return}if(section!=='anime')return;const open=e.target.closest('[data-anime-open]');if(open){details(open.dataset.animeOpen);return}const add=e.target.closest('[data-anime-add]');if(add){const x=animeResults.find(z=>String(z.malId)===add.dataset.animeAdd);if(!x)return;anime.push({...x,id:'anime-'+x.malId,status:'watchlist',watched:[],seasonsRated:{}});store();render();return}});
-render();
+render();updateReleasedSeasons();
 })();
