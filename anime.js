@@ -66,5 +66,34 @@ root.querySelector('[data-overall-rate]').onclick=()=>ratingModal(a,null);root.q
 if(removeMode)root.querySelector('[data-anime-delete]').onclick=()=>{if(!removeMode)return;if(confirm('Remove '+a.title+'?')){anime=anime.filter(x=>x.id!==id);store();root.innerHTML='';render()}}}
 function ratingModal(a,n){seasonFocus=n;let q=n===null?questions.map((item,i)=>[0,5,9].includes(i)?[item[0].replace(/movie/gi,'anime'),item[1]]:item):fiveQs;let values=n===null?a.overallAnswers:a.seasonsRated[n];let curr=Array.from({length:q.length},(_,i)=>values?.[i]??null);function draw(scroll){const root=document.getElementById('modalroot');root.innerHTML='<div class="modal"><div class="sheet" id="anime-rating-sheet"><div class="split"><h2>'+esc(a.title)+(n===null?' — overall':' — Season '+n)+'</h2><button class="close" id="anime-rating-back">×</button></div>'+q.map((item,i)=>'<div class="question"><h3>'+(i+1)+'. '+esc(item[0])+'</h3><div class="choices">'+item[1].map((choice,j)=>'<button class="choice '+(curr[i]===j+1?'selected':'')+'" data-anime-q="'+i+'" data-anime-val="'+(j+1)+'">'+esc(choice)+'</button>').join('')+'</div></div>').join('')+'<div class="ratingtotal">'+curr.filter(x=>x!==null).length+'/'+q.length+' answered</div><div class="topactions"><button class="btn" id="anime-rating-save" '+(curr.some(x=>x===null)?'disabled':'')+'>Save rating</button></div></div></div>';const sheet=root.querySelector('.sheet');sheet.scrollTop=scroll||0;root.querySelectorAll('[data-anime-q]').forEach(button=>button.onclick=()=>{const y=sheet.scrollTop;curr[+button.dataset.animeQ]=+button.dataset.animeVal;draw(y)});root.querySelector('#anime-rating-back').onclick=()=>details(a.id);root.querySelector('#anime-rating-save').onclick=()=>{if(curr.some(x=>x===null))return;if(n===null)a.overallAnswers=curr.slice();else a.seasonsRated[n]=curr.slice();if(n===null)a.status='rated';store();render();details(a.id)}}draw(0)}
 document.getElementById('content').addEventListener('click',e=>{const mode=e.target.closest('[data-section]');if(mode){section=mode.dataset.section;localStorage.setItem(MODEKEY,section);tab='watchlist';document.getElementById('modalroot').innerHTML='';render();return}if(section!=='anime')return;const open=e.target.closest('[data-anime-open]');if(open){details(open.dataset.animeOpen);return}const add=e.target.closest('[data-anime-add]');if(add){const x=animeResults.find(z=>String(z.malId)===add.dataset.animeAdd);if(!x)return;anime.push({...x,id:'anime-'+x.malId,status:'watchlist',watched:[],seasonsRated:{}});store();render();return}});
-render();updateReleasedSeasons();
+
+const POSTER_LOOKUP={
+ 'anime-cyberpunk':'Cyberpunk: Edgerunners',
+ 'anime-snowball':'Snowball Earth',
+ 'anime-sakamoto':'Sakamoto Days',
+ 'anime-chainsaw':'Chainsaw Man',
+ 'anime-reze':'Chainsaw Man Movie: Reze Arc'
+};
+async function hydrateAnimePosters(){
+ const missing=anime.filter(x=>!x.artwork || !x.artwork.startsWith('https://'));
+ for(const item of missing){
+  const title=POSTER_LOOKUP[item.id]||item.title;
+  try{
+   const response=await fetch('https://api.jikan.moe/v4/anime?q='+encodeURIComponent(title)+'&limit=10');
+   if(!response.ok)continue;
+   const data=await response.json();
+   const norm=s=>String(s||'').toLowerCase().replace(/[^a-z0-9]/g,'');
+   const valid=(data.data||[]).filter(x=>x.images?.jpg?.large_image_url||x.images?.webp?.large_image_url);
+   const matching=valid.find(x=>[x.title_english,x.title,x.title_japanese].some(t=>norm(t)===norm(title)))
+      ||valid.find(x=>[x.title_english,x.title].some(t=>norm(t).includes(norm(item.title))||norm(item.title).includes(norm(t))));
+   if(matching){
+    item.artwork=matching.images.webp?.large_image_url||matching.images.jpg?.large_image_url;
+    store();
+    if(section==='anime'&&(tab==='watchlist'||tab==='rated'))render();
+   }
+  }catch(e){}
+  await new Promise(resolve=>setTimeout(resolve,420));
+ }
+}
+render();updateReleasedSeasons();hydrateAnimePosters();
 })();
