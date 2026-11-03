@@ -64,6 +64,8 @@ const seed=[
 let movies;try{const saved=JSON.parse(localStorage.getItem(KEY));movies=Array.isArray(saved)?saved:seed.map((m,i)=>({...m,id:'seed-'+i}));}catch{movies=seed.map((m,i)=>({...m,id:'seed-'+i}));}
 // One-time watchlist addition requested by the user; preserve all existing local ratings.
 try{const marker='reelvault-added-cube2-2026';if(!localStorage.getItem(marker)){if(!movies.some(m=>m.title.toLowerCase()==='cube 2: hypercube'&&String(m.year)==='2002')){movies.push({id:'requested-cube2-2002',title:'Cube 2: Hypercube',year:2002,status:'watchlist'});localStorage.setItem(KEY,JSON.stringify(movies));}localStorage.setItem(marker,'1');}}catch(e){}
+// Add the distinct 2017 Escape Room once, without altering the rated 2019 film.
+try{const marker='reelvault-added-escape-room-2017';if(!localStorage.getItem(marker)){if(!movies.some(m=>m.title.trim().toLowerCase()==='escape room'&&String(m.year)==='2017')){movies.push({id:'requested-escape-room-2017',title:'Escape Room',year:2017,status:'watchlist'});localStorage.setItem(KEY,JSON.stringify(movies));}localStorage.setItem(marker,'1');}}catch(e){}
 let tab='rated',results=[],searchQuery='',answers=[null,null,null,null,null],editing=null,recFilter='all';
 let removeMode=false; // Safety gate defaults OFF on every app launch, even after refresh.
 
